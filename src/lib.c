@@ -40,16 +40,12 @@ static uint64_t xorshift64(void) {
         return xorshift_state = x;
 }
 
-static uint64_t rand_range(uint64_t range) {
-	if (range == 0) {
-		return 0;
-	}
-
-	/* DEFAULT PATH: Unless explicitly told to use Xorshift, read from CSPRNG pool */
+static uint64_t get_entropy64(void) {
+	/* DEFAULT PATH: Read from CSPRNG pool unless Xorshift is enabled */
 	if (!(engine_flags & KAME_XORSHIFT)) {
 		uint64_t fresh_entropy = 0;
 		FILE *urand = fopen("/dev/urandom", "rb");
-		
+
 		if (urand == NULL) {
 			kame_errno = KAME_ERR_URANDOM_OPEN;
 			return 0; /* Safe fallback */
@@ -62,13 +58,44 @@ static uint64_t rand_range(uint64_t range) {
 		}
 
 		fclose(urand);
-		return fresh_entropy % range;
+		return fresh_entropy;
 	}
 
-	/* OPT-IN PATH: Use deterministic Xorshift PRNG */
-	return xorshift64() % range;
+	/* OPT-IN PATH: Deterministic Xorshift PRNG */
+	return xorshift64();
 }
 
+/* Lemire's fastrange algorithm: fast uniform range reduction
+ * Lemire, D. (2018). Fast Random Integer Generation in an Interval.
+ * arXiv:1805.10941 */
+static uint64_t rand_range(uint64_t range) {
+	if (range <= 1) {
+		return 0;
+	}
+
+	uint64_t x = get_entropy64();
+	if (kame_errno != KAME_SUCCESS) {
+		return 0;
+	}
+
+	unsigned __int128 multi = (unsigned __int128)x * range;
+	uint64_t leftover = (uint64_t)multi;
+
+	/* Lemire rejection sampling branch for exact unbiased reduction */
+	if (leftover < range) {
+		uint64_t threshold = -range % range; /* Equivalent to (2^64) % range */
+		while (leftover < threshold) {
+			x = get_entropy64();
+			if (kame_errno != KAME_SUCCESS) {
+				return 0;
+			}
+			multi = (unsigned __int128)x * range;
+			leftover = (uint64_t)multi;
+		}
+	}
+
+	return (uint64_t)(multi >> 64);
+}
 
 void kame_init(uint64_t seed, uint32_t flags) {
 	engine_flags = flags;
