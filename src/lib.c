@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <math.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include "lib.h"
@@ -211,7 +211,9 @@ void kame_print_combinations(const char *template) {
 
         /* Only print stats if the template actually contains structural tokens */
         if (active_tokens > 0) {
+		double entropy_bits = log2(combinations);
                 fprintf(stderr, "[Kamedati Entropy Engine] Unique combinations for template \"%s\": %.0f (%.2e)\n",
                         template, combinations, combinations);
+		fprintf(stderr, "Entropy: %.2f bits\n", entropy_bits);
         }
 }

@@ -9,7 +9,7 @@ CFLAGS    ?= -Wall -Wextra -O2
 CFLAGS    += -MMD -MP
 
 # specify libraries here, e.g. -lm for the math library
-LDLIBS    := 
+LDLIBS    := -lm 
 
 # File Discovery
 # We look for files in the src/ directory
