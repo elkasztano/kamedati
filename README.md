@@ -67,6 +67,7 @@ The password structure is defined by passing tokens to the `-t` or `--template` 
 * `n` : Appends a numeric digit (0-9).
 * `x` : Appends a special symbol character (e.g., !, @, #, $, %).
 * `*` : Any other character in the template is treated as a literal character and inserted directly into the password (e.g., hyphens or spaces).
+* `\` : Escape character, treats next character literally.
 
 ## Examples
 
@@ -100,4 +101,12 @@ View the combination statistics for your chosen pattern without generating multi
 
 ```bash
 ./target/kamedati -n 1 -v -t SssUUnnx
+```
+
+**Escape Character**
+
+Treat the next character after `\` literally:
+
+```bash
+./target/kamedati -t 'Pa\s\sword: Ssssnnnnx' -n 10
 ```

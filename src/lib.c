@@ -115,6 +115,22 @@ void kame_generate(const char *template, char *out_password, size_t max_len) {
         out_password[0] = '\0';
 
         while (template[t_idx] != '\0') {
+
+                /* handle escape character */
+                if (template[t_idx] == '\\') {
+                        t_idx++;
+                        /* handle trailing backslash */
+                        if (template[t_idx] == '\0')
+                                break;
+                        size_t len = strlen(out_password);
+                        if (len < max_len - 1) {
+                                out_password[len] = template[t_idx];
+                                out_password[len + 1] = '\0';
+                        }
+                        t_idx++;
+                        continue;
+                }
+
                 char token = template[t_idx];
 
                 if (token == 's' || token == 'S' || token == 'U') {
@@ -168,7 +184,17 @@ void kame_print_combinations(const char *template) {
         int active_tokens = 0;
 
         while (template[t_idx] != '\0') {
-                char token = template[t_idx];
+
+                /* handle escape character */
+                if (template[t_idx] == '\\') {
+                        t_idx++;
+                        if (template[t_idx] == '\0')
+                                break;
+                        t_idx++;
+                        continue;
+                }
+
+		char token = template[t_idx];
 
                 if (token == 's' || token == 'S' || token == 'U') {
                         combinations *= num_syllables_avail;

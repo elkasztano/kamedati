@@ -95,8 +95,10 @@ void print_help_text(char *progname) {
         printf("  n : Appends a numeric digit (0-9)\n");
         printf("  x : Appends a special symbol character (e.g., !, @, #, $, %%)\n");
 	printf("  * : Any other character in the template is treated as a literal fallback string\n\n");
+        printf("  \\ : Escape character, treats next character literally\n\n");
         printf("Examples:\n");
         printf("  %s -n 10 -t Sssnnx\n", base_name);
         printf("  %s --template SsSsnxnx\n", base_name);
         printf("  %s -s 1234567890 -t Sss-Sss-nnnn\n", base_name);
+        printf("  %s -t 'Pa\\s\\sword: SssxnnSsssnx' -n 5\n", base_name);
 }
