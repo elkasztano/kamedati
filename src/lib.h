@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 /* Configuration Flags */
-#define KAME_XORSHIFT (1 << 0)
+#define KAME_PRNG     (1 << 0)
 #define KAME_VERBOSE  (1 << 1)
 
 /* Kamedati Error Codes */

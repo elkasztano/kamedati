@@ -46,7 +46,7 @@ Cli cliParse(int argc, char **argv) {
                         break;
                 case 's':
                         cli.seed = strtoull(optarg, NULL, 10);
-			cli.flags |= KAME_XORSHIFT;
+			cli.flags |= KAME_PRNG;
                         break;
 		case 'v':
 			cli.flags |= KAME_VERBOSE;
@@ -55,7 +55,7 @@ Cli cliParse(int argc, char **argv) {
                         print_help_text(argv[0]);
                         exit(0);
                 case 'V':
-                        printf("Kamedati Password Generator 1.0\n");
+                        printf("Kamedati Password Generator 1.1\n");
                         exit(0);
                 case '?':
                         print_help_text(argv[0]);

@@ -6,7 +6,7 @@
 #include "lib.h"
 
 /* Hidden state for the engine */
-static uint64_t xorshift_state;
+static uint64_t prng_state;
 static uint32_t engine_flags = 0;
 int kame_errno = KAME_SUCCESS;
 
@@ -31,18 +31,19 @@ int num_syllables_avail = sizeof(linear_b_syllables) / sizeof(linear_b_syllables
 int num_digits_avail = sizeof(digits) - 1;
 int num_specials_avail = sizeof(specials) - 1;
 
-/* Xorshift64 implementation */
-static uint64_t xorshift64(void) {
-        uint64_t x = xorshift_state;
-        x ^= x << 13;
-        x ^= x >> 7;
-        x ^= x << 17;
-        return xorshift_state = x;
+/* Splitmix64 by Sebastiano Vigna
+*  https://prng.di.unimi.it/splitmix64.c
+*/
+uint64_t prng() {
+	uint64_t x = (prng_state += 0x9e3779b97f4a7c15);
+	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+	x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+	return x ^ (x >> 31);
 }
 
 static uint64_t get_entropy64(void) {
 	/* DEFAULT PATH: Read from CSPRNG pool unless Xorshift is enabled */
-	if (!(engine_flags & KAME_XORSHIFT)) {
+	if (!(engine_flags & KAME_PRNG)) {
 		uint64_t fresh_entropy = 0;
 		FILE *urand = fopen("/dev/urandom", "rb");
 
@@ -62,7 +63,7 @@ static uint64_t get_entropy64(void) {
 	}
 
 	/* OPT-IN PATH: Deterministic Xorshift PRNG */
-	return xorshift64();
+	return prng();
 }
 
 /* Lemire's fastrange algorithm: fast uniform range reduction
@@ -101,12 +102,8 @@ void kame_init(uint64_t seed, uint32_t flags) {
 	engine_flags = flags;
 	kame_errno = KAME_SUCCESS; /* Reset error state on re-initialization */
 
-	if (engine_flags & KAME_XORSHIFT) {
-		if (seed == 0) {
-			xorshift_state = 0xFFFFFFFFFFFFFFFFULL;
-		} else {
-			xorshift_state = seed;
-		}
+	if (engine_flags & KAME_PRNG) {
+		prng_state = seed;
 	}
 }
 

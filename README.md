@@ -6,7 +6,7 @@
 
 * **Template-Based Generation**: Provides complete control over the structure of your passwords using a simple token-based templating system.
 * **Secure by Default**: Reads fresh entropy directly from `/dev/urandom` by default, ensuring cryptographically secure password generation.
-* **Deterministic Mode**: Offers an opt-in deterministic mode driven by a 64-bit Xorshift pseudorandom number generator, which is highly useful for repeatable outputs or testing. However, generating actual production passwords in this mode is _not_ recommended.
+* **Deterministic Mode**: Offers an opt-in deterministic mode driven by the Splitmix64 pseudorandom number generator, which is highly useful for repeatable outputs or testing. However, generating actual production passwords in this mode is _not_ recommended.
 * **Entropy Calculation**: Calculates and displays the total number of unique password combinations possible for any given template when running in verbose mode.
 * **Graceful Error Handling**: Features robust runtime error management that will exit safely rather than crashing if the system's entropy pool becomes unavailable.
 
@@ -52,7 +52,7 @@ Once compiled, the executable is located in the `target` directory. Note that th
 
 * `-n, --number <count>`: Number of passwords to generate (default: 5).
 * `-t, --template <string>`: Structure pattern for the password (default: "Sssnnx").
-* `-s, --seed <num>`: Switch to deterministic mode using the specified Xorshift seed.
+* `-s, --seed <num>`: Switch to deterministic mode using the specified Splitmix64 seed.
 * `-v, --verbose`: Print the template combination space to standard error.
 * `-h, --help`: Show the help information text and exit.
 * `-V, --version`: Display application version details and exit.
