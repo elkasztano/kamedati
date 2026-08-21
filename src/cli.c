@@ -5,6 +5,14 @@
 #include "cli.h"
 #include "lib.h"
 
+#ifndef VERSION
+#define VERSION "0.0"
+#endif
+
+#ifndef TRIPLET
+#define TRIPLET "unknown"
+#endif
+
 void print_help_text(char *progname);
 
 Cli cliParse(int argc, char **argv) {
@@ -55,7 +63,7 @@ Cli cliParse(int argc, char **argv) {
                         print_help_text(argv[0]);
                         exit(0);
                 case 'V':
-                        printf("Kamedati Password Generator 1.1\n");
+                        printf("Kamedati Password Generator %s\n%s\n", VERSION, TRIPLET);
                         exit(0);
                 case '?':
                         print_help_text(argv[0]);
