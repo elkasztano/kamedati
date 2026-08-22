@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "lib.h"
 
+#define KAME_ENTROPY_BUF_SIZE 512 /* 4096 bytes */
+
 /* Hidden state for the engine */
 static uint64_t prng_state;
 static uint32_t engine_flags = 0;
@@ -41,40 +43,41 @@ uint64_t prng() {
 	return x ^ (x >> 31);
 }
 
-static uint64_t get_entropy64(void) {
-	/* DEFAULT PATH: Read from CSPRNG pool unless Xorshift is enabled */
+static uint64_t get_entropy64(FILE *urand) {
+	static uint64_t buffer[KAME_ENTROPY_BUF_SIZE];
+	static size_t buf_idx = KAME_ENTROPY_BUF_SIZE;
+
 	if (!(engine_flags & KAME_PRNG)) {
-		uint64_t fresh_entropy = 0;
-		FILE *urand = fopen("/dev/urandom", "rb");
+		/* Refill internal buffer when exhausted */
+		if (buf_idx >= KAME_ENTROPY_BUF_SIZE) {
+			if (urand == NULL) {
+				kame_errno = KAME_ERR_URANDOM_OPEN;
+				return 0;
+			}
 
-		if (urand == NULL) {
-			kame_errno = KAME_ERR_URANDOM_OPEN;
-			return 0; /* Safe fallback */
+			if (fread(buffer, sizeof(uint64_t), KAME_ENTROPY_BUF_SIZE, urand) != KAME_ENTROPY_BUF_SIZE) {
+				kame_errno = KAME_ERR_URANDOM_READ;
+				return 0;
+			}
+			buf_idx = 0;
 		}
 
-		if (fread(&fresh_entropy, sizeof(fresh_entropy), 1, urand) != 1) {
-			kame_errno = KAME_ERR_URANDOM_READ;
-			fclose(urand);
-			return 0; /* Safe fallback */
-		}
-
-		fclose(urand);
-		return fresh_entropy;
+		return buffer[buf_idx++];
 	}
 
-	/* OPT-IN PATH: Deterministic Xorshift PRNG */
+	/* OPT-IN PATH: Deterministic PRNG */
 	return prng();
 }
 
 /* Lemire's fastrange algorithm: fast uniform range reduction
  * Lemire, D. (2018). Fast Random Integer Generation in an Interval.
  * arXiv:1805.10941 */
-static uint64_t rand_range(uint64_t range) {
+static uint64_t rand_range(uint64_t range, FILE *urand) {
 	if (range <= 1) {
 		return 0;
 	}
 
-	uint64_t x = get_entropy64();
+	uint64_t x = get_entropy64(urand);
 	if (kame_errno != KAME_SUCCESS) {
 		return 0;
 	}
@@ -86,7 +89,7 @@ static uint64_t rand_range(uint64_t range) {
 	if (leftover < range) {
 		uint64_t threshold = -range % range; /* Equivalent to (2^64) % range */
 		while (leftover < threshold) {
-			x = get_entropy64();
+			x = get_entropy64(urand);
 			if (kame_errno != KAME_SUCCESS) {
 				return 0;
 			}
@@ -107,72 +110,77 @@ void kame_init(uint64_t seed, uint32_t flags) {
 	}
 }
 
-void kame_generate(const char *template, char *out_password, size_t max_len) {
-        int t_idx = 0;
-        out_password[0] = '\0';
+void kame_generate(const char *template, char *out_password, size_t max_len, FILE *urand) {
+	size_t out_len = 0;
+	size_t t_idx = 0;
 
-        while (template[t_idx] != '\0') {
+	if (out_password == NULL || max_len == 0) {
+		return;
+	}
 
-                /* handle escape character */
-                if (template[t_idx] == '\\') {
-                        t_idx++;
-                        /* handle trailing backslash */
-                        if (template[t_idx] == '\0')
-                                break;
-                        size_t len = strlen(out_password);
-                        if (len < max_len - 1) {
-                                out_password[len] = template[t_idx];
-                                out_password[len + 1] = '\0';
-                        }
-                        t_idx++;
-                        continue;
-                }
+	out_password[0] = '\0';
 
-                char token = template[t_idx];
+	while (template[t_idx] != '\0') {
 
-                if (token == 's' || token == 'S' || token == 'U') {
-                        uint64_t index = rand_range(num_syllables_avail);
-                        const char *syllable = linear_b_syllables[index];
-                        char temp_syl[16];
+		/* handle escape character */
+		if (template[t_idx] == '\\') {
+			t_idx++;
+			/* handle trailing backslash */
+			if (template[t_idx] == '\0') {
+				break;
+			}
+			if (out_len < max_len - 1) {
+				out_password[out_len++] = template[t_idx];
+				out_password[out_len] = '\0';
+			}
+			t_idx++;
+			continue;
+		}
 
-                        strncpy(temp_syl, syllable, sizeof(temp_syl) - 1);
-                        temp_syl[sizeof(temp_syl) - 1] = '\0';
+		char token = template[t_idx];
 
-                        if (token == 'S' && temp_syl[0] != '\0') {
-                                temp_syl[0] = (char)toupper((unsigned char)temp_syl[0]);
-                        } else if (token == 'U') {
-                                /* Convert the entire syllable string to uppercase */
-                                for (int i = 0; temp_syl[i] != '\0'; i++) {
-                                        temp_syl[i] = (char)toupper((unsigned char)temp_syl[i]);
-                                }
-                        }
+		if (token == 's' || token == 'S' || token == 'U') {
+			uint64_t index = rand_range(num_syllables_avail, urand);
+			const char *syllable = linear_b_syllables[index];
 
-                        strncat(out_password, temp_syl, max_len - strlen(out_password) - 1);
+			/* Inline copy & transform 1-2 ASCII characters */
+			for (size_t i = 0; syllable[i] != '\0'; i++) {
+				if (out_len >= max_len - 1) {
+					break;
+				}
 
-                } else if (token == 'n') {
-                        uint64_t index = rand_range(num_digits_avail);
-                        size_t len = strlen(out_password);
-                        if (len < max_len - 1) {
-                                out_password[len] = digits[index];
-                                out_password[len + 1] = '\0';
-                        }
+				char c = syllable[i];
+				if (token == 'U' || (token == 'S' && i == 0)) {
+					c = (char)toupper((unsigned char)c);
+				}
 
-                } else if (token == 'x') {
-                        uint64_t index = rand_range(num_specials_avail);
-                        size_t len = strlen(out_password);
-                        if (len < max_len - 1) {
-                                out_password[len] = specials[index];
-                                out_password[len + 1] = '\0';
-                        }
-                } else {
-                        size_t len = strlen(out_password);
-                        if (len < max_len - 1) {
-                                out_password[len] = token;
-                                out_password[len + 1] = '\0';
-                        }
-                }
-                t_idx++;
-        }
+				out_password[out_len++] = c;
+			}
+			out_password[out_len] = '\0';
+
+		} else if (token == 'n') {
+			uint64_t index = rand_range(num_digits_avail, urand);
+			if (out_len < max_len - 1) {
+				out_password[out_len++] = digits[index];
+				out_password[out_len] = '\0';
+			}
+
+		} else if (token == 'x') {
+			uint64_t index = rand_range(num_specials_avail, urand);
+			if (out_len < max_len - 1) {
+				out_password[out_len++] = specials[index];
+				out_password[out_len] = '\0';
+			}
+
+		} else {
+			if (out_len < max_len - 1) {
+				out_password[out_len++] = token;
+				out_password[out_len] = '\0';
+			}
+		}
+
+		t_idx++;
+	}
 }
 
 void kame_print_combinations(const char *template) {

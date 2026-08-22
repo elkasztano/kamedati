@@ -26,7 +26,7 @@ extern int num_digits_avail;
 extern int num_specials_avail;
 
 void kame_init(uint64_t seed, uint32_t flags);
-void kame_generate(const char *template, char *out_password, size_t max_len);
+void kame_generate(const char *template, char *out_password, size_t max_len, FILE *urand);
 void kame_print_combinations(const char *template);
 
 #endif /* LIB_H */
