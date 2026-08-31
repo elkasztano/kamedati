@@ -1,6 +1,6 @@
 # Kamedati
 
-**Kamedati** is a Pronounceable Linear B Script Password Generator. It creates memorable, highly structured passwords using a mixture of transliterated syllables from the ancient Linear B script, numbers, and special characters.
+**Kamedati** is a Pronounceable Password Generator. It creates memorable, highly structured passwords using a mixture of syllables, numbers, and special characters. By default transliterated syllables from the ancient Linear B script are used, but an alternative larger set of syllables is also available.
 
 ## Features
 
@@ -52,6 +52,7 @@ Once compiled, the executable is located in the `target` directory. Note that th
 
 * `-n, --number <count>`: Number of passwords to generate (default: 5).
 * `-t, --template <string>`: Structure pattern for the password (default: "Sssnnx").
+* `-b, --syllables <syllables>`: Select syllable set (possible: "alt", default: "linearB").
 * `-s, --seed <num>`: Switch to deterministic mode using the specified Splitmix64 seed.
 * `-v, --verbose`: Print the template combination space to standard error.
 * `-h, --help`: Show the help information text and exit.
@@ -61,9 +62,9 @@ Once compiled, the executable is located in the `target` directory. Note that th
 
 The password structure is defined by passing tokens to the `-t` or `--template` flag.
 
-* `s` : Generates a lowercase Linear B transliterated syllable (e.g., "da", "ko").
-* `S` : Generates a capitalized Linear B transliterated syllable (e.g., "Da", "Ko").
-* `U` : Generates a fully capitalized Linear B transliterated syllable (e.g., "DA", "KO").
+* `s` : Generates a lowercase syllable (e.g., "da", "ko").
+* `S` : Generates a capitalized syllable (e.g., "Da", "Ko").
+* `U` : Generates a fully capitalized syllable (e.g., "DA", "KO").
 * `n` : Appends a numeric digit (0-9).
 * `x` : Appends a special symbol character (e.g., !, @, #, $, %).
 * `*` : Any other character in the template is treated as a literal character and inserted directly into the password (e.g., hyphens or spaces).
@@ -81,10 +82,10 @@ Generate 10 passwords using the default pattern (one capital syllable, two lower
 
 **Custom Patterns**
 
-Generate a password that alternates syllables and numbers:
+Generate a password that alternates syllables, numbers and special characters:
 
 ```bash
-./target/kamedati --template SsSsnxnx
+./target/kamedati --template SnxsnxUnn
 ```
 
 **Deterministic Output**
@@ -110,3 +111,12 @@ Treat the next character after `\` literally:
 ```bash
 ./target/kamedati -t 'Pa\s\sword: Ssssnnnnx' -n 10
 ```
+
+**Alternative syllables**
+
+Use alternative set of syllables:
+
+```bash
+./target/kamedati -t SssnnxSssnnx -b alt
+```
+

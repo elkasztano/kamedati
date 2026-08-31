@@ -20,6 +20,15 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if (cli.syll_idtfr != NULL) {
+		kame_map_syll_idtfr(cli.syll_idtfr);
+		if (kame_errno == KAME_ERR_SYLLABLE_NA) {
+			fprintf(stderr, "\x1b[93mWarning:\x1b[0m "
+					"Specified syllable set not found. "
+					"Default to Linear B.\n");
+		}
+	}
+
 	kame_init(cli.seed, cli.flags);
 
 	if (cli.flags & KAME_VERBOSE) {

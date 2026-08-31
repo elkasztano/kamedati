@@ -26,10 +26,36 @@ const char *linear_b_syllables[] = {
         "za", "ze", "zo"
 };
 
+const char *alt_syllables[] = {
+	"ba", "be", "bi", "bo", "bu", "bee",
+	"ca", "ce", "ci", "co", "cu", "coo",
+	"da", "de", "di", "do", "du", "dee",
+	"fa", "fe", "fi", "fo", "fu", "foo",
+	"ga", "ge", "gi", "go", "gu", "gee",
+	"ha", "he", "hi", "ho", "hu", "hoo",
+	"ja", "je", "ji", "jo", "ju", "joe",
+	"la", "le", "li", "lo", "lu", "lee",
+	"na", "ne", "ni", "no", "nu", "noo",
+	"ma", "me", "mi", "mo", "mu", "mee",
+	"pa", "pe", "pi", "po", "pu", "pie",
+	"qua", "que", "qui", "quo",
+	"ra", "re", "ri", "ro", "ru", "roo",
+	"sa", "se", "si", "so", "su", "see",
+	"ta", "te", "ti", "to", "tu", "too",
+	"va", "ve", "vi", "vo", "vu", "vee",
+	"wa", "we", "wi", "wo", "wu", "woo",
+	"xa", "xe", "xi", "xo", "xu", "xee",
+	"za", "ze", "zi", "zo", "zu", "zoo",
+	"ya", "ye", "yi", "yo", "yu", "yee"
+};
+
 const char digits[] = "0123456789";
 const char specials[] = "!@#$%^&*()-_=+[]{}";
 
+/* default values */
+const char **syllables = linear_b_syllables;
 int num_syllables_avail = sizeof(linear_b_syllables) / sizeof(linear_b_syllables[0]);
+
 int num_digits_avail = sizeof(digits) - 1;
 int num_specials_avail = sizeof(specials) - 1;
 
@@ -141,7 +167,7 @@ void kame_generate(const char *template, char *out_password, size_t max_len, FIL
 
 		if (token == 's' || token == 'S' || token == 'U') {
 			uint64_t index = rand_range(num_syllables_avail, urand);
-			const char *syllable = linear_b_syllables[index];
+			const char *syllable = syllables[index];
 
 			/* Inline copy & transform 1-2 ASCII characters */
 			for (size_t i = 0; syllable[i] != '\0'; i++) {
@@ -217,8 +243,22 @@ void kame_print_combinations(const char *template) {
         /* Only print stats if the template actually contains structural tokens */
         if (active_tokens > 0) {
 		double entropy_bits = log2(combinations);
-                fprintf(stderr, "[Kamedati Entropy Engine] Unique combinations for template \"%s\": %.0f (%.2e)\n",
+                fprintf(stderr, "Unique combinations for template \"%s\": %.0f (%.2e)\n",
                         template, combinations, combinations);
+		fprintf(stderr, "Syllables: %d, Digits: %d, Special characters: %d\n",
+				num_syllables_avail, num_digits_avail, num_specials_avail);
 		fprintf(stderr, "Entropy: %.2f bits\n", entropy_bits);
         }
+}
+
+void kame_map_syll_idtfr(const char *identifier) {
+	if (!strncmp(identifier, "linearB", 7)) {
+		syllables = linear_b_syllables;
+		num_syllables_avail = sizeof(linear_b_syllables) / sizeof(linear_b_syllables[0]);
+	} else if (!strncmp(identifier, "alt", 3)) {
+		syllables = alt_syllables;
+		num_syllables_avail = sizeof(alt_syllables) / sizeof(alt_syllables[0]);
+	} else {
+		kame_errno = KAME_ERR_SYLLABLE_NA;
+	}
 }

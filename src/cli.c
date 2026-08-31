@@ -24,19 +24,21 @@ Cli cliParse(int argc, char **argv) {
         cli.template = "Sssnnx";
         cli.seed = 0ULL;
         cli.flags = 0;
+	cli.syll_idtfr = NULL;
 
         while (1) {
                 static struct option long_options[] = {
-                        { "number",   required_argument, 0, 'n' },
-                        { "template", required_argument, 0, 't' },
-                        { "seed",     required_argument, 0, 's' },
-			{ "verbose",  no_argument, 	 0, 'v' },
-			{ "help",     no_argument,       0, 'h' },
-                        { "version",  no_argument,       0, 'V' },
+                        { "number",    required_argument, 0, 'n' },
+                        { "template",  required_argument, 0, 't' },
+			{ "syllables", required_argument, 0, 'b' },
+			{ "seed",      required_argument, 0, 's' },
+			{ "verbose",   no_argument, 	  0, 'v' },
+			{ "help",      no_argument,       0, 'h' },
+                        { "version",   no_argument,       0, 'V' },
                         { 0, 0, 0, 0 }
                 };
 
-                c = getopt_long(argc, argv, "hVvn:t:s:", long_options, &option_index);
+                c = getopt_long(argc, argv, "hVvn:t:b:s:", long_options, &option_index);
                 
                 if (c == -1)
                         break;
@@ -52,6 +54,9 @@ Cli cliParse(int argc, char **argv) {
                 case 't':
                         cli.template = optarg;
                         break;
+		case 'b':
+			cli.syll_idtfr = optarg;
+			break;
                 case 's':
                         cli.seed = strtoull(optarg, NULL, 10);
 			cli.flags |= KAME_PRNG;
@@ -91,7 +96,8 @@ void print_help_text(char *progname) {
         printf("Options:\n");
         printf("  -n, --number <count>     Number of passwords to generate (default: 5)\n");
         printf("  -t, --template <string>  Structure pattern for the password (default: \"Sssnnx\")\n");
-        printf("  -s, --seed <num>         switch to deterministic mode using specified Xorshift seed\n");
+        printf("  -b, --syllables          Select syllable set, possible values: 'linearB' (default), 'alt'\n");
+	printf("  -s, --seed <num>         switch to deterministic mode using specified Xorshift seed\n");
 	printf("                           (Omit this flag for secure default /dev/urandom generation)\n");
 	printf("  -v, --verbose            print template combination space to stderr\n");
 	printf("  -h, --help               Show this help information text and exit\n");
@@ -109,4 +115,5 @@ void print_help_text(char *progname) {
         printf("  %s --template SsSsnxnx\n", base_name);
         printf("  %s -s 1234567890 -t Sss-Sss-nnnn\n", base_name);
         printf("  %s -t 'Pa\\s\\sword: SssxnnSsssnx' -n 5\n", base_name);
+	printf("  %s -t SssnnxSssnnx -b alt\n", base_name);
 }
