@@ -31,5 +31,6 @@ void kame_init(uint64_t seed, uint32_t flags);
 void kame_generate(const char *template, char *out_password, size_t max_len, FILE *urand);
 void kame_print_combinations(const char *template);
 void kame_map_syll_idtfr(const char *identifier);
+void kame_free_syllables(void);
 
 #endif /* LIB_H */

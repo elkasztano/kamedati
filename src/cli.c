@@ -83,37 +83,38 @@ Cli cliParse(int argc, char **argv) {
 }
 
 void print_help_text(char *progname) {
-        /* Strip the path from the program name if present for cleaner output */
-        char *base_name = strrchr(progname, '/');
-        if (base_name != NULL) {
-                base_name++;
-        } else {
-                base_name = progname;
-        }
+	/* Strip the path from the program name if present for cleaner output */
+	char *base_name = strrchr(progname, '/');
+	if (base_name != NULL) {
+		base_name++;
+	} else {
+		base_name = progname;
+	}
 
-        printf("Kamedati - A Pronounceable Linear B Script Password Generator\n\n");
-        printf("Usage: %s [options]\n\n", base_name);
-        printf("Options:\n");
-        printf("  -n, --number <count>     Number of passwords to generate (default: 5)\n");
-        printf("  -t, --template <string>  Structure pattern for the password (default: \"Sssnnx\")\n");
-        printf("  -b, --syllables          Select syllable set, possible values: 'linearB' (default), 'alt'\n");
-	printf("  -s, --seed <num>         switch to deterministic mode using specified Xorshift seed\n");
-	printf("                           (Omit this flag for secure default /dev/urandom generation)\n");
-	printf("  -v, --verbose            print template combination space to stderr\n");
-	printf("  -h, --help               Show this help information text and exit\n");
-        printf("  -V, --version            Display application version details and exit\n\n");
-        printf("Template Tokens:\n");
-        printf("  s : Generates a lowercase Linear B transliterated syllable (e.g., \"da\", \"ko\")\n");
-        printf("  S : Generates a capitalized Linear B transliterated syllable (e.g., \"Da\", \"Ko\")\n");
-	printf("  U : Generates a fully capitalized Linear B transliterated syllable (e.g., \"DA\", \"KO\")\n");
-        printf("  n : Appends a numeric digit (0-9)\n");
-        printf("  x : Appends a special symbol character (e.g., !, @, #, $, %%)\n");
+	printf("Kamedati - A Pronounceable Password Generator\n\n");
+	printf("Usage: %s [options]\n\n", base_name);
+	printf("Options:\n");
+	printf("  -n, --number <count>      Number of passwords to generate (default: 5)\n");
+	printf("  -t, --template <string>   Structure pattern for the password (default: \"Sssnnx\")\n");
+	printf("  -b, --syllables <set>     Select syllable set: 'linearB' (default), 'alt', 'file:<path>'\n");
+	printf("  -s, --seed <num>          Switch to deterministic mode using specified Splitmix64 seed\n");
+	printf("                            (Omit this flag for secure default /dev/urandom generation)\n");
+	printf("  -v, --verbose             Print template combination space to stderr\n");
+	printf("  -h, --help                Show this help information text and exit\n");
+	printf("  -V, --version             Display application version details and exit\n\n");
+	printf("Template Tokens:\n");
+	printf("  s : Generates a lowercase syllable (e.g., \"da\", \"ko\")\n");
+	printf("  S : Generates a capitalized syllable (e.g., \"Da\", \"Ko\")\n");
+	printf("  U : Generates a fully capitalized syllable (e.g., \"DA\", \"KO\")\n");
+	printf("  n : Appends a numeric digit (0-9)\n");
+	printf("  x : Appends a special symbol character (e.g., !, @, #, $, %%)\n");
 	printf("  * : Any other character in the template is treated as a literal fallback string\n\n");
-        printf("  \\ : Escape character, treats next character literally\n\n");
-        printf("Examples:\n");
-        printf("  %s -n 10 -t Sssnnx\n", base_name);
-        printf("  %s --template SsSsnxnx\n", base_name);
-        printf("  %s -s 1234567890 -t Sss-Sss-nnnn\n", base_name);
-        printf("  %s -t 'Pa\\s\\sword: SssxnnSsssnx' -n 5\n", base_name);
+	printf("  \\ : Escape character, treats next character literally\n\n");
+	printf("Examples:\n");
+	printf("  %s -n 10 -t Sssnnx\n", base_name);
+	printf("  %s --template SsSsnxnx\n", base_name);
+	printf("  %s -s 1234567890 -t Sss-Sss-nnnn\n", base_name);
+	printf("  %s -t 'Pa\\s\\sword: SssxnnSsssnx' -n 5\n", base_name);
 	printf("  %s -t SssnnxSssnnx -b alt\n", base_name);
+	printf("  %s -t Sssnnx -b file:syllables.txt\n", base_name);
 }

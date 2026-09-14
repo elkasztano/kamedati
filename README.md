@@ -1,10 +1,11 @@
 # Kamedati
 
-**Kamedati** is a Pronounceable Password Generator. It creates memorable, highly structured passwords using a mixture of syllables, numbers, and special characters. By default transliterated syllables from the ancient Linear B script are used, but an alternative larger set of syllables is also available.
+**Kamedati** is a Pronounceable Password Generator. It creates memorable, highly structured passwords using a mixture of syllables, numbers, and special characters. By default, transliterated syllables from the ancient Linear B script are used, but alternative builtin syllable sets and custom external files are also supported.
 
 ## Features
 
 * **Template-Based Generation**: Provides complete control over the structure of your passwords using a simple token-based templating system.
+* **Flexible Syllable Sources**: Supports default Linear B syllables, an alternative open-syllable pool, or external whitespace-separated custom syllable files.
 * **Secure by Default**: Reads fresh entropy directly from `/dev/urandom` by default, ensuring cryptographically secure password generation.
 * **Deterministic Mode**: Offers an opt-in deterministic mode driven by the Splitmix64 pseudorandom number generator, which is highly useful for repeatable outputs or testing. However, generating actual production passwords in this mode is _not_ recommended.
 * **Entropy Calculation**: Calculates and displays the total number of unique password combinations possible for any given template when running in verbose mode.
@@ -52,7 +53,7 @@ Once compiled, the executable is located in the `target` directory. Note that th
 
 * `-n, --number <count>`: Number of passwords to generate (default: 5).
 * `-t, --template <string>`: Structure pattern for the password (default: "Sssnnx").
-* `-b, --syllables <syllables>`: Select syllable set (possible: "alt", default: "linearB").
+* `-b, --syllables <set>`: Select syllable set: 'linearB' (default), 'alt', or 'file:\<path\>'.
 * `-s, --seed <num>`: Switch to deterministic mode using the specified Splitmix64 seed.
 * `-v, --verbose`: Print the template combination space to standard error.
 * `-h, --help`: Show the help information text and exit.
@@ -112,11 +113,18 @@ Treat the next character after `\` literally:
 ./target/kamedati -t 'Pa\s\sword: Ssssnnnnx' -n 10
 ```
 
-**Alternative syllables**
+**Alternative Builtin Syllables**
 
-Use alternative set of syllables:
+Use the alternative set of builtin syllables:
 
 ```bash
 ./target/kamedati -t SssnnxSssnnx -b alt
 ```
 
+**External Syllable File**
+
+Load custom syllables from a whitespace-delimited file:
+
+```bash
+./target/kamedati -t Sssnnx -b file:syllables.txt
+```

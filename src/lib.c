@@ -35,10 +35,10 @@ const char *alt_syllables[] = {
 	"ha", "he", "hi", "ho", "hu", "hoo",
 	"ja", "je", "ji", "jo", "ju", "joe",
 	"la", "le", "li", "lo", "lu", "lee",
-	"na", "ne", "ni", "no", "nu", "noo",
+	"na", "ne", "nie", "no", "nu", "noo",
 	"ma", "me", "mi", "mo", "mu", "mee",
 	"pa", "pe", "pi", "po", "pu", "pie",
-	"qua", "que", "qui", "quo",
+	"qua", "que", "qu", "quo",
 	"ra", "re", "ri", "ro", "ru", "roo",
 	"sa", "se", "si", "so", "su", "see",
 	"ta", "te", "ti", "to", "tu", "too",
@@ -251,13 +251,103 @@ void kame_print_combinations(const char *template) {
         }
 }
 
+/* static buffers for dynamically loaded syllables */
+static char *custom_file_buffer = NULL;
+static char **custom_syllables = NULL;
+
+void kame_free_syllables(void) {
+	if (custom_syllables != NULL) {
+		free(custom_syllables);
+		custom_syllables = NULL;
+	}
+	if (custom_file_buffer != NULL) {
+		free(custom_file_buffer);
+		custom_file_buffer = NULL;
+	}
+
+	/* reset defaults */
+	syllables = linear_b_syllables;
+	num_syllables_avail = sizeof(linear_b_syllables) / sizeof(linear_b_syllables[0]);
+}
+
 void kame_map_syll_idtfr(const char *identifier) {
+	kame_free_syllables();
+
 	if (!strncmp(identifier, "linearB", 7)) {
 		syllables = linear_b_syllables;
 		num_syllables_avail = sizeof(linear_b_syllables) / sizeof(linear_b_syllables[0]);
 	} else if (!strncmp(identifier, "alt", 3)) {
 		syllables = alt_syllables;
 		num_syllables_avail = sizeof(alt_syllables) / sizeof(alt_syllables[0]);
+	} else if (!strncmp(identifier, "file:", 5)) {
+		const char *filepath = identifier + 5;
+		FILE *f = fopen(filepath, "r");
+		if (f == NULL) {
+			kame_errno = KAME_ERR_SYLLABLE_NA;
+			return;
+		}
+
+		fseek(f, 0, SEEK_END);
+		long fsize = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		if (fsize <= 0) {
+			fclose(f);
+			kame_errno = KAME_ERR_SYLLABLE_NA;
+			return;
+		}
+
+		custom_file_buffer = malloc(fsize + 1);
+		if (custom_file_buffer == NULL) {
+			fclose(f);
+			kame_errno = KAME_ERR_SYLLABLE_NA;
+			return;
+		}
+
+		size_t read_bytes = fread(custom_file_buffer, 1, fsize, f);
+		fclose(f);
+		custom_file_buffer[read_bytes] = '\0';
+
+		/* count whitespace-delimited tokens */
+		size_t count = 0;
+		int in_token = 0;
+		for (size_t i = 0; i < read_bytes; i++) {
+			if (isspace((unsigned char)custom_file_buffer[i])) {
+				in_token = 0;
+			} else if (!in_token) {
+				in_token = 1;
+				count++;
+			}
+		}
+
+		if (count == 0) {
+			kame_free_syllables();
+			kame_errno = KAME_ERR_SYLLABLE_NA;
+			return;
+		}
+
+		custom_syllables = malloc(count * sizeof(char *));
+		if (custom_syllables == NULL) {
+			kame_free_syllables();
+			kame_errno = KAME_ERR_SYLLABLE_NA;
+			return;
+		}
+
+		/* extract pointers into custom_file_buffer in-place */
+		size_t idx = 0;
+		in_token = 0;
+		for (size_t i = 0; i < read_bytes; i++) {
+			if (isspace((unsigned char)custom_file_buffer[i])) {
+				custom_file_buffer[i] = '\0';
+				in_token = 0;
+			} else if (!in_token) {
+				custom_syllables[idx++] = &custom_file_buffer[i];
+				in_token = 1;
+			}
+		}
+
+		syllables = (const char **)custom_syllables;
+		num_syllables_avail = (int)count;
 	} else {
 		kame_errno = KAME_ERR_SYLLABLE_NA;
 	}

@@ -73,5 +73,8 @@ int main(int argc, char **argv) {
 		urand = NULL;
 	}
 
+	/* safe destructor in case syllables have been loaded from file */
+	kame_free_syllables();
+
 	return 0;
 }
