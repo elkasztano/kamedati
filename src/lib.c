@@ -3,6 +3,10 @@
 #include <math.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <sys/random.h>
+#include <errno.h>
 #include "lib.h"
 
 #define KAME_ENTROPY_BUF_SIZE 512 /* 4096 bytes */
@@ -69,21 +73,29 @@ uint64_t prng() {
 	return x ^ (x >> 31);
 }
 
-static uint64_t get_entropy64(FILE *urand) {
+static uint64_t get_entropy64(void) {
 	static uint64_t buffer[KAME_ENTROPY_BUF_SIZE];
 	static size_t buf_idx = KAME_ENTROPY_BUF_SIZE;
 
 	if (!(engine_flags & KAME_PRNG)) {
 		/* Refill internal buffer when exhausted */
 		if (buf_idx >= KAME_ENTROPY_BUF_SIZE) {
-			if (urand == NULL) {
-				kame_errno = KAME_ERR_URANDOM_OPEN;
-				return 0;
-			}
+			uint8_t *ptr = (uint8_t *)buffer;
+			size_t bytes_left = sizeof(buffer);
 
-			if (fread(buffer, sizeof(uint64_t), KAME_ENTROPY_BUF_SIZE, urand) != KAME_ENTROPY_BUF_SIZE) {
-				kame_errno = KAME_ERR_URANDOM_READ;
-				return 0;
+			while (bytes_left > 0) {
+				ssize_t ret = getrandom(ptr, bytes_left, 0);
+
+				if (ret < 0) {
+					if (errno == EINTR) {
+						continue;
+					}
+					kame_errno = KAME_ERR_URANDOM_READ;
+					return 0; // Unrecoverable system call failure
+				}
+
+				ptr += ret;
+				bytes_left -= ret;
 			}
 			buf_idx = 0;
 		}
@@ -98,12 +110,12 @@ static uint64_t get_entropy64(FILE *urand) {
 /* Lemire's fastrange algorithm: fast uniform range reduction
  * Lemire, D. (2018). Fast Random Integer Generation in an Interval.
  * arXiv:1805.10941 */
-static uint64_t rand_range(uint64_t range, FILE *urand) {
+static uint64_t rand_range(uint64_t range) {
 	if (range <= 1) {
 		return 0;
 	}
 
-	uint64_t x = get_entropy64(urand);
+	uint64_t x = get_entropy64();
 	if (kame_errno != KAME_SUCCESS) {
 		return 0;
 	}
@@ -115,7 +127,7 @@ static uint64_t rand_range(uint64_t range, FILE *urand) {
 	if (leftover < range) {
 		uint64_t threshold = -range % range; /* Equivalent to (2^64) % range */
 		while (leftover < threshold) {
-			x = get_entropy64(urand);
+			x = get_entropy64();
 			if (kame_errno != KAME_SUCCESS) {
 				return 0;
 			}
@@ -136,7 +148,7 @@ void kame_init(uint64_t seed, uint32_t flags) {
 	}
 }
 
-void kame_generate(const char *template, char *out_password, size_t max_len, FILE *urand) {
+void kame_generate(const char *template, char *out_password, size_t max_len) {
 	size_t out_len = 0;
 	size_t t_idx = 0;
 
@@ -166,7 +178,7 @@ void kame_generate(const char *template, char *out_password, size_t max_len, FIL
 		char token = template[t_idx];
 
 		if (token == 's' || token == 'S' || token == 'U') {
-			uint64_t index = rand_range(num_syllables_avail, urand);
+			uint64_t index = rand_range(num_syllables_avail);
 			const char *syllable = syllables[index];
 
 			/* Inline copy & transform 1-2 ASCII characters */
@@ -185,14 +197,14 @@ void kame_generate(const char *template, char *out_password, size_t max_len, FIL
 			out_password[out_len] = '\0';
 
 		} else if (token == 'n') {
-			uint64_t index = rand_range(num_digits_avail, urand);
+			uint64_t index = rand_range(num_digits_avail);
 			if (out_len < max_len - 1) {
 				out_password[out_len++] = digits[index];
 				out_password[out_len] = '\0';
 			}
 
 		} else if (token == 'x') {
-			uint64_t index = rand_range(num_specials_avail, urand);
+			uint64_t index = rand_range(num_specials_avail);
 			if (out_len < max_len - 1) {
 				out_password[out_len++] = specials[index];
 				out_password[out_len] = '\0';

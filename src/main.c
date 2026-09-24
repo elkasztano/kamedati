@@ -9,17 +9,6 @@ int main(int argc, char **argv) {
 	Cli cli = cliParse(argc, argv);
 	const char *template = cli.template;
 
-	/* source of cryptographically secure bytes */
-	FILE *urand = NULL;
-	if (!(cli.flags & KAME_PRNG)) {
-		urand = fopen("/dev/urandom", "rb");
-		if (urand == NULL) {
-			kame_errno = KAME_ERR_URANDOM_OPEN;
-			fprintf(stderr, "Runtime Error: Could not open entropy pool.\n");
-			return 1;
-		}
-	}
-
 	if (cli.syll_idtfr != NULL) {
 		kame_map_syll_idtfr(cli.syll_idtfr);
 		if (kame_errno == KAME_ERR_SYLLABLE_NA) {
@@ -41,12 +30,9 @@ int main(int argc, char **argv) {
 	for (int j = 0; j < cli.n; j++) {
 		char password[256];
 
-		kame_generate(template, password, sizeof(password), urand);
+		kame_generate(template, password, sizeof(password));
 
 		if (kame_errno != KAME_SUCCESS) {
-			if (urand != NULL) {
-				fclose(urand);
-			}
 			return 1;
 		}
 
@@ -66,11 +52,6 @@ int main(int argc, char **argv) {
 	/* Flush any remaining output */
 	if (out_buf_len > 0) {
 		fwrite(out_buf, 1, out_buf_len, stdout);
-	}
-
-	if (urand != NULL) {
-		fclose(urand);
-		urand = NULL;
 	}
 
 	/* safe destructor in case syllables have been loaded from file */

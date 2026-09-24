@@ -11,8 +11,8 @@
 /* Kamedati Error Codes */
 typedef enum {
 	KAME_SUCCESS = 0,
-	KAME_ERR_URANDOM_OPEN,  /* /dev/urandom could not be opened */
-	KAME_ERR_URANDOM_READ,	/* /dev/urandom read operation failed */
+	KAME_ERR_URANDOM_OPEN,  /* deprecated, unused */
+	KAME_ERR_URANDOM_READ,	/* getrandom() read operation failed */
 	KAME_ERR_SYLLABLE_NA    /* syllable identifier not available */
 } KameError;
 
@@ -28,7 +28,7 @@ extern int num_digits_avail;
 extern int num_specials_avail;
 
 void kame_init(uint64_t seed, uint32_t flags);
-void kame_generate(const char *template, char *out_password, size_t max_len, FILE *urand);
+void kame_generate(const char *template, char *out_password, size_t max_len);
 void kame_print_combinations(const char *template);
 void kame_map_syll_idtfr(const char *identifier);
 void kame_free_syllables(void);
